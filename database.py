@@ -1,0 +1,165 @@
+import sqlite3
+from models import Event
+from typing import Dict, Any
+from datetime import datetime, timezone
+import json
+
+DB_FILE = "events.db"
+
+
+def init_database():
+    """
+    Create the events table if it does not exist.
+    """
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            user_id TEXT,
+            data TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP           
+        )               
+        """
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def insert_event(event: Event) -> Dict[str, Any]:
+    """
+    Insert a new event into the database
+    """
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    data_json = json.dumps(event.data)
+
+    cursor.execute(
+        """
+        INSERT INTO events (timestamp, event_type, user_id, data)
+        VALUES (?, ?, ?, ?)
+        """,
+        (timestamp, event.event_type, event.user_id, data_json),
+    )
+
+    event_id = cursor.lastrowid
+    conn.commit()
+
+    cursor.execute("SELECT COUNT(*) FROM events")
+    total_events = cursor.fetchone()[0]
+
+    conn.close()
+
+    return {"event_id": event_id, "total_events": total_events}
+
+
+def get_events(limit: int = 10) -> Dict[str, Any]:
+    """
+    Get recent events from the database
+    """
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id, timestamp, event_type, user_id, data, created_at
+        FROM events
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (limit,),
+    )
+
+    rows = cursor.fetchall()
+
+    events = []
+    for row in rows:
+        events.append(
+            {
+                "id": row[0],
+                "timestamp": row[1],
+                "event_type": row[2],
+                "user_id": row[3],
+                "data": json.loads(row[4]) if row[4] else {},
+                "created_at": row[5],
+            }
+        )
+
+    cursor.execute("SELECT COUNT(*) FROM events")
+    total = cursor.fetchone()[0]
+
+    conn.close()
+
+    return {"events": events, "total": total}
+
+
+def get_stats() -> Dict[str, Any]:
+    """
+    Get analytics statistics
+    """
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM events")
+    total = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        SELECT event_type, COUNT(*) 
+        FROM events
+        GROUP BY event_type
+        ORDER BY COUNT(*) DESC
+        """
+    )
+    event_types = dict(cursor.fetchall())
+
+    cursor.execute(
+        "SELECT COUNT(DISTINCT user_id) FROM events WHERE user_id IS NOT NULL"
+    )
+    unique_users = cursor.fetchone()[0]
+
+    cursor.execute(
+        """
+        SELECT COUNT(*) FROM events
+        WHERE datetime(created_at) > datetime('now', '-1 hour')
+        """
+    )
+    recent_events = cursor.fetchone()[0]
+
+    conn.close()
+
+    return {
+        "total_events": total,
+        "unique_users": unique_users,
+        "event_last_hour": recent_events,
+        "event_types": event_types,
+    }
+
+
+def clear_all_events() -> Dict[str, str]:
+    """
+    Clear all events from database
+    """
+
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM events")
+
+    conn.commit()
+    conn.close()
+
+
+# Initialize the database on startup
+init_database()
