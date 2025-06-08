@@ -117,3 +117,44 @@ body {
 .test-btn:hover {
 	background: #047857;
 }
+
+.funnel-section {
+	background: white;
+	padding: 20px;
+	border-radius: 8px;
+	margin-bottom: 20px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.funnel-steps {
+	display: flex;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.funnel-step {
+	flex: 1;
+	text-align: center;
+	padding: 15px;
+	border: 2px solid #e5e7eb;
+	border-radius: 8px;
+	background: #f9fafb;
+}
+
+.step-name {
+	font-size: 0.9em;
+	color: #6b7280;
+	margin-bottom: 5px;
+}
+
+.step-count {
+	font-size: 1.5em;
+	font-weight: bold;
+	color: #3b82f6;
+}
+
+.step-rate {
+	font-size: 0.9em;
+	color: #059669;
+	font-weight: 600;
+}

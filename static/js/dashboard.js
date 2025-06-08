@@ -40,6 +40,7 @@ function handleWebSocketMessage(data) {
 			updateStats(data.stats);
 			updateEventsTable(data.events);
 			updateCharts(data.stats.event_types, data.events);
+			updateFunnel(data.funnel);
 			break;
 
 		case "new_event":
@@ -52,6 +53,10 @@ function handleWebSocketMessage(data) {
 			updateStats(data.data);
 			// Refresh charts with new data
 			loadFullData();
+			break;
+
+		case "funnel_update":
+			updateFunnel(data.data);
 			break;
 	}
 }
@@ -308,3 +313,28 @@ document.addEventListener("DOMContentLoaded", function () {
 		}
 	}, 2000);
 });
+
+function updateFunnel(funnelData) {
+	const counts = funnelData.funnel_counts;
+	const rates = funnelData.conversion_rates;
+
+	// Update counts
+	document.getElementById("funnelPageView").textContent = counts.page_view;
+	document.getElementById("funnelProductView").textContent =
+		counts.product_view;
+	document.getElementById("funnelAddToCart").textContent = counts.add_to_cart;
+	document.getElementById("funnelSignup").textContent = counts.user_signup;
+	document.getElementById("funnelPurchase").textContent = counts.purchase;
+
+	// Update conversion rates
+	document.getElementById("funnelPageViewRate").textContent =
+		rates.page_view + "%";
+	document.getElementById("funnelProductViewRate").textContent =
+		rates.product_view + "%";
+	document.getElementById("funnelAddToCartRate").textContent =
+		rates.add_to_cart + "%";
+	document.getElementById("funnelSignupRate").textContent =
+		rates.user_signup + "%";
+	document.getElementById("funnelPurchaseRate").textContent =
+		rates.purchase + "%";
+}

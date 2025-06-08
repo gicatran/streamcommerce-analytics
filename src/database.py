@@ -161,5 +161,62 @@ def clear_all_events() -> Dict[str, str]:
     conn.close()
 
 
+def get_funnel_analysis():
+    """
+    Calculate conversion funnel with percentages
+    """
+
+    result = get_events(200)
+    events = result["events"]
+
+    user_journeys = {}
+    for event in events:
+        user_id = event.get("user_id", "anonymous")
+
+        if user_id not in user_journeys:
+            user_journeys[user_id] = []
+        user_journeys[user_id].append(event["event_type"])
+
+    funnel_counts = {
+        "page_view": 0,
+        "product_view": 0,
+        "add_to_cart": 0,
+        "user_signup": 0,
+        "purchase": 0,
+    }
+
+    for user_id, events_list in user_journeys.items():
+        if "page_view" in events_list:
+            funnel_counts["page_view"] += 1
+        if "product_view" in events_list:
+            funnel_counts["product_view"] += 1
+        if "add_to_cart" in events_list:
+            funnel_counts["add_to_cart"] += 1
+        if "user_signup" in events_list:
+            funnel_counts["user_signup"] += 1
+        if "purchase" in events_list:
+            funnel_counts["purchase"] += 1
+
+    total_users = funnel_counts["page_view"]
+    conversion_rates = {}
+
+    if total_users > 0:
+        conversion_rates = {
+            "page_view": 100.0,
+            "product_view": round(
+                (funnel_counts["product_view"] / total_users) * 100, 1
+            ),
+            "add_to_cart": round((funnel_counts["add_to_cart"] / total_users) * 100, 1),
+            "user_signup": round((funnel_counts["user_signup"] / total_users) * 100, 1),
+            "purchase": round((funnel_counts["purchase"] / total_users) * 100, 1),
+        }
+
+    return {
+        "funnel_counts": funnel_counts,
+        "conversion_rates": conversion_rates,
+        "total_users": total_users,
+    }
+
+
 # Initialize the database on startup
 init_database()
