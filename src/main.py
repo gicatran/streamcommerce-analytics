@@ -7,6 +7,7 @@ from database import (
     get_events,
     get_stats,
     clear_all_events,
+    get_funnel_analysis,
 )
 from dashboard import get_dashboard_html
 from models import Event
@@ -34,6 +35,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         stats = get_stats()
         events_data = get_events(10)
+        funnel_data = get_funnel_analysis()
 
         await websocket.send_text(
             json.dumps(
@@ -41,6 +43,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "type": "initial_data",
                     "stats": stats,
                     "events": events_data["events"],
+                    "funnel": funnel_data,
                 }
             )
         )
@@ -88,7 +91,11 @@ async def track_event(event: Event):
     await websocket_manager.send_event_update(event_data)
 
     updated_stats = get_stats()
+    funnel_data = get_funnel_analysis()
+
     await websocket_manager.send_stats_update(updated_stats)
+
+    await websocket_manager.send_to_all({"type": "funnel_update", "data": funnel_data})
 
     return {"status": "tracked", **result}
 
@@ -256,6 +263,15 @@ def get_user_activity():
         user_journeys[user_id].sort(key=lambda x: x["timestamp"])
 
     return {"user_journeys": user_journeys}
+
+
+@app.get("/funnel-analysis")
+def funnel_analysis():
+    """
+    Get conversion funnel analysis
+    """
+
+    return get_funnel_analysis()
 
 
 if __name__ == "__main__":
