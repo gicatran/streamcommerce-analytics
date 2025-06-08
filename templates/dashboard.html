@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>StreamCommerce Analytics Dashboard</title>
+		<link rel="stylesheet" href="/static/css/dashboard.css" />
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+	</head>
+	<body>
+		<div class="container">
+			<div class="header">
+				<h1>StreamCommerce Analytics Dashboard</h1>
+				<p>Real-time event tracking and analytics</p>
+				<button class="refresh-btn" onclick="loadData()">
+					🔄 Refresh Data
+				</button>
+				<button
+					class="test-btn"
+					onclick="generateDemoTraffic()"
+					style="margin-left: 10px"
+				>
+					🚀 Generate Demo Traffic
+				</button>
+			</div>
+
+			<div class="test-section">
+				<h3>Quick Test Events</h3>
+				<button
+					class="test-btn"
+					onclick="sendTestEvent('page_view', {page: '/home'})"
+				>
+					Page View
+				</button>
+				<button
+					class="test-btn"
+					onclick="sendTestEvent('product_view', {product: 'laptop', price: 999})"
+				>
+					Product View
+				</button>
+				<button
+					class="test-btn"
+					onclick="sendTestEvent('add_to_cart', {product: 'laptop', quantity: 1})"
+				>
+					Add to Cart
+				</button>
+				<button
+					class="test-btn"
+					onclick="sendTestEvent('purchase', {amount: 999, items: 1})"
+				>
+					Purchase
+				</button>
+				<button
+					class="test-btn"
+					onclick="sendTestEvent('user_signup', {method: 'email'})"
+				>
+					User Signup
+				</button>
+			</div>
+
+			<div class="stats-grid">
+				<div class="stat-card">
+					<div class="stat-number" id="totalEvents">-</div>
+					<div class="stat-label">Total Events</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-number" id="uniqueUsers">-</div>
+					<div class="stat-label">Unique Users</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-number" id="recentEvents">-</div>
+					<div class="stat-label">Events (Last Hour)</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-number" id="eventTypes">-</div>
+					<div class="stat-label">Event Types</div>
+				</div>
+			</div>
+
+			<div class="charts-grid">
+				<div class="chart-container">
+					<h3>Events by Type</h3>
+					<canvas id="eventTypesChart"></canvas>
+				</div>
+				<div class="chart-container">
+					<h3>Recent Activity</h3>
+					<canvas id="activityChart"></canvas>
+				</div>
+			</div>
+
+			<div class="events-table">
+				<h3>Recent Events</h3>
+				<table>
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Type</th>
+							<th>User</th>
+							<th>Data</th>
+							<th>Time</th>
+						</tr>
+					</thead>
+					<tbody id="eventsTableBody"></tbody>
+				</table>
+			</div>
+		</div>
+
+		<script src="/static/js/dashboard.js"></script>
+	</body>
+</html>
