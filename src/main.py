@@ -1,4 +1,14 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+"""
+StreamCommerce Analytics Platform
+
+Real-time e-commerce analytics with conversion tracking,
+user segmentation, and anomaly detection.
+
+Author: Gica Tran
+Date: 2025
+"""
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from database import (
@@ -15,9 +25,30 @@ from dashboard import get_dashboard_html
 from models import Event
 from websocket_manager import websocket_manager
 import json
+import logging
+from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(title="StreamCommerce Analytics", version="1.0.0")
+app = FastAPI(
+    title="StreamCommerce Analytics Platform",
+    description="Real-time e-commerce analytics with anomaly detection",
+    version="1.0.0",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure properly for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -78,39 +109,49 @@ async def track_event(event: Event):
     """
     Track a new event - now with real-time updates
     """
-    newEvent = Event(
-        event_type=event.event_type,
-        user_id=event.user_id,
-        data=event.data,
-    )
 
-    result = insert_event(newEvent)
+    try:
+        logger.info(f"Tracking event: {event.event_type} for user {event.user_id}")
 
-    event_data = {
-        "id": result["event_id"],
-        "event_type": newEvent.event_type,
-        "user_id": newEvent.user_id,
-        "data": newEvent.data,
-        "timestamp": "just now",
-    }
+        newEvent = Event(
+            event_type=event.event_type,
+            user_id=event.user_id,
+            data=event.data,
+        )
 
-    await websocket_manager.send_event_update(event_data)
+        result = insert_event(newEvent)
 
-    updated_stats = get_stats()
-    funnel_data = get_funnel_analysis()
-    segmentation_data = get_user_segmentation()
-    anomaly_data = detect_anomalies()
+        event_data = {
+            "id": result["event_id"],
+            "event_type": newEvent.event_type,
+            "user_id": newEvent.user_id,
+            "data": newEvent.data,
+            "timestamp": "just now",
+        }
 
-    await websocket_manager.send_stats_update(updated_stats)
-    await websocket_manager.send_to_all({"type": "funnel_update", "data": funnel_data})
-    await websocket_manager.send_to_all(
-        {"type": "segmentation_update", "data": segmentation_data}
-    )
-    await websocket_manager.send_to_all(
-        {"type": "anomaly_update", "data": anomaly_data}
-    )
+        await websocket_manager.send_event_update(event_data)
 
-    return {"status": "tracked", **result}
+        updated_stats = get_stats()
+        funnel_data = get_funnel_analysis()
+        segmentation_data = get_user_segmentation()
+        anomaly_data = detect_anomalies()
+
+        await websocket_manager.send_stats_update(updated_stats)
+        await websocket_manager.send_to_all(
+            {"type": "funnel_update", "data": funnel_data}
+        )
+        await websocket_manager.send_to_all(
+            {"type": "segmentation_update", "data": segmentation_data}
+        )
+        await websocket_manager.send_to_all(
+            {"type": "anomaly_update", "data": anomaly_data}
+        )
+
+        logger.info(f"Successfully tracked event {result['event_id']}")
+        return {"status": "tracked", **result}
+    except Exception as e:
+        logger.error(f"Error tracking event: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to track event")
 
 
 @app.get("/events")
@@ -162,9 +203,20 @@ async def clear_events():
 @app.get("/health")
 def health_check():
     """
-    Health check endpoint
+    Production health check endpoint
     """
-    return {"status": "healthy", "service": "StreamCommerce Analytics"}
+
+    return {
+        "status": "healthy",
+        "service": "StreamCommerce Analytics",
+        "version": "1.0.0",
+        "features": [
+            "real-time-analytics",
+            "conversion-funnels",
+            "user-segmentation",
+            "anomaly-detection",
+        ],
+    }
 
 
 @app.post("/demo/generate-traffic")
@@ -387,6 +439,27 @@ async def generate_anomalies():
         await asyncio.sleep(0.1)
 
     return {"status": "Anomalies generated", "message": "Check /anomalies endpoint"}
+
+
+# API v1 routes
+@app.get("/api/v1/stats")
+def get_stats_v1():
+    """Get analytics statistics - API v1"""
+    try:
+        return get_stats()
+    except Exception as e:
+        logger.error(f"Error getting stats: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get statistics")
+
+
+@app.get("/api/v1/funnel")
+def get_funnel_v1():
+    """Get conversion funnel analysis - API v1"""
+    try:
+        return get_funnel_analysis()
+    except Exception as e:
+        logger.error(f"Error getting funnel: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get funnel analysis")
 
 
 if __name__ == "__main__":

@@ -143,7 +143,7 @@ def get_stats() -> Dict[str, Any]:
     return {
         "total_events": total,
         "unique_users": unique_users,
-        "event_last_hour": recent_events,
+        "events_last_hour": recent_events,
         "event_types": event_types,
     }
 
@@ -343,7 +343,7 @@ def detect_anomalies():
                 if amount > avg_amount + (2 * std_amount):
                     anomalies.append(
                         {
-                            "type": "unsual_purchase",
+                            "type": "unusual_purchase",
                             "severity": "medium",
                             "message": f"Unusual high purchase: ${amount} (avg: ${avg_amount:.2f})",
                             "current_value": amount,
@@ -371,7 +371,7 @@ def detect_anomalies():
                     {
                         "type": "hyperactive_user",
                         "severity": "low",
-                        "message": f"User {user_id} has unsual activity: {activity_count} events (avg: {avg_activity:.1f})",
+                        "message": f"User {user_id} has unusual activity: {activity_count} events (avg: {avg_activity:.1f})",
                         "current_value": activity_count,
                         "expected_range": f"{avg_activity - std_activity:.1f} - {avg_activity + std_activity:.1f}",
                         "user_id": user_id,

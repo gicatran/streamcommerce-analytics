@@ -1,19 +1,37 @@
-# Virtual Environment
-venv/
-env/
-
 # Python
 __pycache__/
 *.py[cod]
 *.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
 
-# Environment files
+# Environment
 .env
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite3
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+.cache/
+.pytest_cache/
