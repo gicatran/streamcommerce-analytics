@@ -8,6 +8,7 @@ from database import (
     get_stats,
     clear_all_events,
     get_funnel_analysis,
+    get_user_segmentation,
 )
 from dashboard import get_dashboard_html
 from models import Event
@@ -36,6 +37,7 @@ async def websocket_endpoint(websocket: WebSocket):
         stats = get_stats()
         events_data = get_events(10)
         funnel_data = get_funnel_analysis()
+        segmentation_data = get_user_segmentation()
 
         await websocket.send_text(
             json.dumps(
@@ -44,6 +46,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "stats": stats,
                     "events": events_data["events"],
                     "funnel": funnel_data,
+                    "segmentation": segmentation_data,
                 }
             )
         )
@@ -92,10 +95,13 @@ async def track_event(event: Event):
 
     updated_stats = get_stats()
     funnel_data = get_funnel_analysis()
+    segmentation_data = get_user_segmentation()
 
     await websocket_manager.send_stats_update(updated_stats)
-
     await websocket_manager.send_to_all({"type": "funnel_update", "data": funnel_data})
+    await websocket_manager.send_to_all(
+        {"type": "segmentation_update", "data": segmentation_data}
+    )
 
     return {"status": "tracked", **result}
 
@@ -272,6 +278,59 @@ def funnel_analysis():
     """
 
     return get_funnel_analysis()
+
+
+@app.get("/user-patterns")
+def analyze_user_patterns():
+    """
+    Analyze user behavior patterns to understand intent signals
+    """
+
+    result = get_events(200)
+    events = result["events"]
+
+    user_journeys = {}
+    for event in events:
+        user_id = event.get("user_id", "anonymous")
+
+        if user_id not in user_journeys:
+            user_journeys[user_id] = []
+
+        user_journeys[user_id].append(
+            {
+                "event_type": event["event_type"],
+                "timestamp": event["timestamp"],
+                "data": event["data"],
+            }
+        )
+
+    user_analysis = {}
+    for user_id, events_list in user_journeys.items():
+        events_list.sort(key=lambda x: x["timestamp"])
+
+        event_types = [e["event_type"] for e in events_list]
+
+        analysis = {
+            "total_events": len(events_list),
+            "event_sequence": event_types,
+            "converted": "purchase" in event_types,
+            "added_to_cart": "add_to_cart" in event_types,
+            "viewed_products": "product_view" in event_types,
+            "signup": "user_signup" in event_types,
+        }
+
+        user_analysis[user_id] = analysis
+
+    return {"user_patterns": user_analysis}
+
+
+@app.get("/user-segmentation")
+def user_segmentation():
+    """
+    Get real-time user intent segmentation
+    """
+
+    return get_user_segmentation()
 
 
 if __name__ == "__main__":
