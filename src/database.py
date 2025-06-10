@@ -3,6 +3,7 @@ from models import Event
 from typing import Dict, Any
 from datetime import datetime, timezone
 import json
+import statistics
 
 DB_FILE = "events.db"
 
@@ -279,6 +280,111 @@ def get_user_segmentation():
         )
 
     return segmentation
+
+
+def detect_anomalies():
+    """
+    Detect statistical anomalies in recent event patterns
+    """
+
+    result = get_events(100)
+    events = result["events"]
+
+    if len(events) < 10:
+        return {"anomalies": [], "message": "Insufficient data for anomaly detection"}
+
+    anomalies = []
+
+    time_windows = {}
+    for event in events:
+        timestamp = datetime.fromisoformat(event["timestamp"].replace("Z", "+00:00"))
+        window = timestamp.replace(
+            minute=(timestamp.minute // 5) * 5, second=0, microsecond=0
+        )
+        window_key = window.isoformat()
+
+        if window_key not in time_windows:
+            time_windows[window_key] = 0
+        time_windows[window_key] += 1
+
+    event_counts = list(time_windows.values())
+    if len(event_counts) >= 3:
+        avg_rate = statistics.mean(event_counts)
+        std_rate = statistics.stdev(event_counts) if len(event_counts) > 1 else 0
+        current_rate = event_counts[-1]
+
+        if std_rate > 0 and current_rate > avg_rate + (2 * std_rate):
+            anomalies.append(
+                {
+                    "type": "traffic_spike",
+                    "severity": "high",
+                    "message": f"Traffic spike detected: {current_rate} events in 5 min (avg: {avg_rate:.1f})",
+                    "current_value": current_rate,
+                    "expected_range": f"{avg_rate - std_rate:.1f} - {avg_rate + std_rate:.1f}",
+                    "detected_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+
+    purchase_events = [e for e in events if e["event_type"] == "purchase"]
+    if len(purchase_events) >= 5:
+        amounts = []
+        for event in purchase_events:
+            amount = event.get("data", {}).get("amount", 0)
+            if amount > 0:
+                amounts.append(amount)
+
+        if len(amounts) >= 5:
+            avg_amount = statistics.mean(amounts)
+            std_amount = statistics.stdev(amounts)
+
+            recent_purchases = purchase_events[-3:]
+            for purchase in recent_purchases:
+                amount = purchase.get("data", {}).get("amount", 0)
+                if amount > avg_amount + (2 * std_amount):
+                    anomalies.append(
+                        {
+                            "type": "unsual_purchase",
+                            "severity": "medium",
+                            "message": f"Unusual high purchase: ${amount} (avg: ${avg_amount:.2f})",
+                            "current_value": amount,
+                            "expected_range": f"${avg_amount - std_amount:.2f} - ${avg_amount + std_amount:.2f}",
+                            "user_id": purchase.get("user_id"),
+                            "detected_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
+
+    user_activity = {}
+    for event in events:
+        user_id = event.get("user_id", "anonymous")
+        if user_id not in user_activity:
+            user_activity[user_id] = 0
+        user_activity[user_id] += 1
+
+    activity_counts = list(user_activity.values())
+    if len(activity_counts) >= 5:
+        avg_activity = statistics.mean(activity_counts)
+        std_activity = statistics.stdev(activity_counts)
+
+        for user_id, activity_count in user_activity.items():
+            if activity_count > avg_activity + (2 * std_activity):
+                anomalies.append(
+                    {
+                        "type": "hyperactive_user",
+                        "severity": "low",
+                        "message": f"User {user_id} has unsual activity: {activity_count} events (avg: {avg_activity:.1f})",
+                        "current_value": activity_count,
+                        "expected_range": f"{avg_activity - std_activity:.1f} - {avg_activity + std_activity:.1f}",
+                        "user_id": user_id,
+                        "detected_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
+
+    return {
+        "anomalies": anomalies,
+        "total_anomalies": len(anomalies),
+        "analysis_period": "last 100 events",
+        "detection_types": ["traffic_spike", "unusual_purchase", "hyperactive_user"],
+    }
 
 
 # Initialize the database on startup

@@ -42,6 +42,7 @@ function handleWebSocketMessage(data) {
 			updateCharts(data.stats.event_types, data.events);
 			updateFunnel(data.funnel);
 			updateSegmentation(data.segmentation);
+			updateAnomalies(data.anomalies);
 			break;
 
 		case "new_event":
@@ -62,6 +63,10 @@ function handleWebSocketMessage(data) {
 
 		case "segmentation_update":
 			updateSegmentation(data.data);
+			break;
+
+		case "anomaly_update":
+			updateAnomalies(data.data);
 			break;
 	}
 }
@@ -332,6 +337,60 @@ function updateSegmentation(segmentationData) {
 		segmentationData.medium_intent.length;
 	document.getElementById("segmentLowIntent").textContent =
 		segmentationData.low_intent.length;
+}
+
+function updateAnomalies(anomalyData) {
+	const statusIndicator = document.getElementById("statusIndicator");
+	const statusLight = statusIndicator.querySelector(".status-light");
+	const statusText = statusIndicator.querySelector(".status-text");
+	const anomalyCount = document.getElementById("anomalyCount");
+	const anomalyAlerts = document.getElementById("anomalyAlerts");
+
+	const totalAnomalies = anomalyData.total_anomalies;
+	const anomalies = anomalyData.anomalies;
+
+	// Update status indicator
+	if (totalAnomalies === 0) {
+		statusLight.className = "status-light";
+		statusText.textContent = "System Normal";
+		anomalyCount.textContent = "No anomalies detected";
+	} else {
+		// Determine severity level
+		const hasHigh = anomalies.some((a) => a.severity === "high");
+		const hasMedium = anomalies.some((a) => a.severity === "medium");
+
+		if (hasHigh) {
+			statusLight.className = "status-light danger";
+			statusText.textContent = "Critical Anomalies";
+		} else if (hasMedium) {
+			statusLight.className = "status-light warning";
+			statusText.textContent = "Anomalies Detected";
+		} else {
+			statusLight.className = "status-light warning";
+			statusText.textContent = "Minor Anomalies";
+		}
+
+		anomalyCount.textContent = `${totalAnomalies} anomal${
+			totalAnomalies === 1 ? "y" : "ies"
+		} detected`;
+	}
+
+	// Update alerts
+	anomalyAlerts.innerHTML = "";
+
+	anomalies.forEach((anomaly) => {
+		const alertDiv = document.createElement("div");
+		alertDiv.className = `anomaly-alert ${anomaly.severity}`;
+
+		alertDiv.innerHTML = `
+            <div class="alert-title">${anomaly.type
+				.replace("_", " ")
+				.toUpperCase()}</div>
+            <div class="alert-message">${anomaly.message}</div>
+        `;
+
+		anomalyAlerts.appendChild(alertDiv);
+	});
 }
 
 // Manual refresh function (keep for backup)

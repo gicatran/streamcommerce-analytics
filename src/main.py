@@ -9,6 +9,7 @@ from database import (
     clear_all_events,
     get_funnel_analysis,
     get_user_segmentation,
+    detect_anomalies,
 )
 from dashboard import get_dashboard_html
 from models import Event
@@ -38,6 +39,7 @@ async def websocket_endpoint(websocket: WebSocket):
         events_data = get_events(10)
         funnel_data = get_funnel_analysis()
         segmentation_data = get_user_segmentation()
+        anomaly_data = detect_anomalies()
 
         await websocket.send_text(
             json.dumps(
@@ -47,6 +49,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "events": events_data["events"],
                     "funnel": funnel_data,
                     "segmentation": segmentation_data,
+                    "anomalies": anomaly_data,
                 }
             )
         )
@@ -96,11 +99,15 @@ async def track_event(event: Event):
     updated_stats = get_stats()
     funnel_data = get_funnel_analysis()
     segmentation_data = get_user_segmentation()
+    anomaly_data = detect_anomalies()
 
     await websocket_manager.send_stats_update(updated_stats)
     await websocket_manager.send_to_all({"type": "funnel_update", "data": funnel_data})
     await websocket_manager.send_to_all(
         {"type": "segmentation_update", "data": segmentation_data}
+    )
+    await websocket_manager.send_to_all(
+        {"type": "anomaly_update", "data": anomaly_data}
     )
 
     return {"status": "tracked", **result}
@@ -331,6 +338,55 @@ def user_segmentation():
     """
 
     return get_user_segmentation()
+
+
+@app.get("/anomalies")
+def get_anomalies():
+    """
+    Get real-time anomaly detection results
+    """
+
+    return detect_anomalies()
+
+
+@app.post("/demo/generate-anomalies")
+async def generate_anomalies():
+    """Generate anomalous behavior to test detection"""
+    import random
+    import asyncio
+
+    # 1. Create traffic spike - send many events quickly
+    for i in range(15):  # Send 15 events rapidly
+        event = Event(
+            event_type="page_view", user_id=f"spike_user_{i}", data={"page": "/home"}
+        )
+        await track_event(event)
+        await asyncio.sleep(0.1)  # Very fast
+
+    # 2. Create unusual purchase amounts
+    for i in range(3):
+        unusual_amount = random.randint(5000, 10000)  # Much higher than normal $999
+        event = Event(
+            event_type="purchase",
+            user_id=f"whale_user_{i}",
+            data={"amount": unusual_amount, "payment": "card"},
+        )
+        await track_event(event)
+        await asyncio.sleep(0.2)
+
+    # 3. Create hyperactive user
+    hyperactive_user = "spam_user_999"
+    for i in range(12):  # One user does lots of actions
+        event_types = ["page_view", "product_view", "add_to_cart"]
+        event = Event(
+            event_type=random.choice(event_types),
+            user_id=hyperactive_user,
+            data={"action": f"spam_action_{i}"},
+        )
+        await track_event(event)
+        await asyncio.sleep(0.1)
+
+    return {"status": "Anomalies generated", "message": "Check /anomalies endpoint"}
 
 
 if __name__ == "__main__":
