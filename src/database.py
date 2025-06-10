@@ -218,5 +218,68 @@ def get_funnel_analysis():
     }
 
 
+def classify_user_intent(user_events):
+    """
+    Classify user intent based on behavior patterns
+    """
+
+    event_types = [e["event_type"] for e in user_events]
+    total_events = len(user_events)
+
+    if "purchase" in event_types:
+        return "converted"
+
+    if "add_to_cart" in event_types:
+        if total_events >= 5:
+            return "high_intent"
+        else:
+            return "medium_intent"
+
+    if "product_view" in event_types:
+        if total_events >= 3:
+            return "medium_intent"
+        else:
+            return "low_intent"
+
+    return "low_intent"
+
+
+def get_user_segmentation():
+    """
+    Get real-time user intent segmentation
+    """
+
+    result = get_events(200)
+    events = result["events"]
+
+    user_journeys = {}
+    for event in events:
+        user_id = event.get("user_id", "anonymous")
+
+        if user_id not in user_journeys:
+            user_journeys[user_id] = []
+
+        user_journeys[user_id].append(event)
+
+    segmentation = {
+        "high_intent": [],
+        "medium_intent": [],
+        "low_intent": [],
+        "converted": [],
+    }
+
+    for user_id, user_events in user_journeys.items():
+        intent = classify_user_intent(user_events)
+        segmentation[intent].append(
+            {
+                "user_id": user_id,
+                "total_events": len(user_events),
+                "last_event": user_events[-1]["event_type"] if user_events else None,
+            }
+        )
+
+    return segmentation
+
+
 # Initialize the database on startup
 init_database()

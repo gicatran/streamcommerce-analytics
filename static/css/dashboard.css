@@ -158,3 +158,60 @@ body {
 	color: #059669;
 	font-weight: 600;
 }
+
+.segmentation-section {
+	background: white;
+	padding: 20px;
+	border-radius: 8px;
+	margin-bottom: 20px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.segmentation-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 15px;
+}
+
+.segment-card {
+	text-align: center;
+	padding: 20px;
+	border-radius: 8px;
+	border: 2px solid;
+}
+
+.segment-card.converted {
+	background: #dcfce7;
+	border-color: #16a34a;
+}
+
+.segment-card.high-intent {
+	background: #fef3c7;
+	border-color: #d97706;
+}
+
+.segment-card.medium-intent {
+	background: #dbeafe;
+	border-color: #2563eb;
+}
+
+.segment-card.low-intent {
+	background: #f3f4f6;
+	border-color: #6b7280;
+}
+
+.segment-name {
+	font-weight: 600;
+	margin-bottom: 8px;
+}
+
+.segment-count {
+	font-size: 2em;
+	font-weight: bold;
+	margin-bottom: 4px;
+}
+
+.segment-desc {
+	font-size: 0.85em;
+	opacity: 0.8;
+}

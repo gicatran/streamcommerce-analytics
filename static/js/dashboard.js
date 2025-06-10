@@ -41,6 +41,7 @@ function handleWebSocketMessage(data) {
 			updateEventsTable(data.events);
 			updateCharts(data.stats.event_types, data.events);
 			updateFunnel(data.funnel);
+			updateSegmentation(data.segmentation);
 			break;
 
 		case "new_event":
@@ -57,6 +58,10 @@ function handleWebSocketMessage(data) {
 
 		case "funnel_update":
 			updateFunnel(data.data);
+			break;
+
+		case "segmentation_update":
+			updateSegmentation(data.data);
 			break;
 	}
 }
@@ -293,27 +298,6 @@ async function generateDemoTraffic() {
 	}
 }
 
-// Manual refresh function (keep for backup)
-async function loadData() {
-	if (!isConnected) {
-		// Fallback to manual loading if WebSocket is not connected
-		await loadFullData();
-	}
-}
-
-// Initialize when page loads
-document.addEventListener("DOMContentLoaded", function () {
-	// Connect WebSocket for real-time updates
-	connectWebSocket();
-
-	// Fallback: load data manually if WebSocket fails
-	setTimeout(() => {
-		if (!isConnected) {
-			loadData();
-		}
-	}, 2000);
-});
-
 function updateFunnel(funnelData) {
 	const counts = funnelData.funnel_counts;
 	const rates = funnelData.conversion_rates;
@@ -338,3 +322,35 @@ function updateFunnel(funnelData) {
 	document.getElementById("funnelPurchaseRate").textContent =
 		rates.purchase + "%";
 }
+
+function updateSegmentation(segmentationData) {
+	document.getElementById("segmentConverted").textContent =
+		segmentationData.converted.length;
+	document.getElementById("segmentHighIntent").textContent =
+		segmentationData.high_intent.length;
+	document.getElementById("segmentMediumIntent").textContent =
+		segmentationData.medium_intent.length;
+	document.getElementById("segmentLowIntent").textContent =
+		segmentationData.low_intent.length;
+}
+
+// Manual refresh function (keep for backup)
+async function loadData() {
+	if (!isConnected) {
+		// Fallback to manual loading if WebSocket is not connected
+		await loadFullData();
+	}
+}
+
+// Initialize when page loads
+document.addEventListener("DOMContentLoaded", function () {
+	// Connect WebSocket for real-time updates
+	connectWebSocket();
+
+	// Fallback: load data manually if WebSocket fails
+	setTimeout(() => {
+		if (!isConnected) {
+			loadData();
+		}
+	}, 2000);
+});
