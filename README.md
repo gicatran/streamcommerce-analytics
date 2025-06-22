@@ -311,10 +311,3 @@ print(response.json())
 ## 📝 License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
-
-## 👤 Author
-
-**Gica Tran**
-
--   GitHub: [@gicatran](https://github.com/gicatran)
--   LinkedIn: [Tran Lan Giac](https://linkedin.com/in/gicatran)
